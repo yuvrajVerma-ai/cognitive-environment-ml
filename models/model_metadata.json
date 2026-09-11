@@ -1,0 +1,41 @@
+{
+  "model_file": "best_model_random_forest.pkl",
+  "target_variable": "reaction_time_ms",
+  "user_facing_inputs": {
+    "light_lux": {
+      "type": "slider",
+      "min": 350,
+      "max": 1400,
+      "default": 500
+    },
+    "noise_db": {
+      "type": "slider",
+      "min": 25,
+      "max": 85,
+      "default": 40
+    },
+    "n_back_level": {
+      "type": "select",
+      "options": [
+        1,
+        2
+      ],
+      "default": 1
+    }
+  },
+  "fixed_default_inputs": {
+    "age": 24,
+    "gender": "Male",
+    "trial_number": 13
+  },
+  "feature_order": [
+    "age",
+    "gender",
+    "condition",
+    "light_lux",
+    "noise_db",
+    "n_back_level",
+    "trial_number"
+  ],
+  "note": "condition column is auto-derived, not user input - see predict.py"
+}
