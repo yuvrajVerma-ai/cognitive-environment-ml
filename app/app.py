@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
+import plotly.express as px
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.predict import predict_reaction_time
