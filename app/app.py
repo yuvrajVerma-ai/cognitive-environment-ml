@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+import numpy as np
 import pandas as pd
 import plotly.express as px
 
@@ -148,3 +149,56 @@ if predict_clicked:
     ax.bar_label(bars, fmt='%.0f', color="white", padding=3)
     plt.tight_layout()
     st.pyplot(fig)
+
+
+# ================= EXTRA: HEATMAP + FEATURE IMPORTANCE =================
+MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "models", "best_model_random_forest.pkl"
+)
+
+@st.cache_data(show_spinner="Building heatmap...")
+def build_grid(n_back, model_path):
+    rows = []
+    for d in range(25, 86, 10):          # noise: 25 to 85 dB
+        for l in range(350, 1401, 150):  # light: 350 to 1400 lux
+            rt, _ = predict_reaction_time(
+                light_lux=l, noise_db=d, n_back_level=n_back, model_path=model_path
+            )
+            rows.append((l, d, float(rt)))
+    return pd.DataFrame(rows, columns=["light", "noise", "rt"])
+
+st.divider()
+st.subheader("Best Light & Noise Conditions")
+st.caption(f"Predicted reaction time for N-back level {n_back_level} (lower is better).")
+
+grid = build_grid(n_back_level, MODEL_PATH)
+pivot = grid.pivot(index="noise", columns="light", values="rt")
+
+fig_hm = px.imshow(
+    pivot, origin="lower", aspect="auto",
+    labels=dict(x="Light (lux)", y="Noise (dB)", color="Reaction time (ms)"),
+    color_continuous_scale="RdYlGn_r",
+)
+st.plotly_chart(fig_hm, use_container_width=True)
+
+best = grid.loc[grid["rt"].idxmin()]
+st.success(
+    f"Fastest predicted reaction time: {best['rt']:.0f} ms "
+    f"at about {int(best['light'])} lux and {int(best['noise'])} dB"
+)
+
+st.subheader("Which factor matters most?")
+try:
+    import joblib
+    mdl = joblib.load(MODEL_PATH)
+    est = mdl.steps[-1][1] if hasattr(mdl, "steps") else mdl
+    imp = est.feature_importances_
+    names = getattr(mdl, "feature_names_in_", None)
+    if names is None or len(names) != len(imp):
+        names = [f"feature_{i+1}" for i in range(len(imp))]
+    imp_df = pd.DataFrame({"Feature": list(names), "Importance": imp}).sort_values("Importance")
+    fig_imp = px.bar(imp_df, x="Importance", y="Feature", orientation="h")
+    st.plotly_chart(fig_imp, use_container_width=True)
+except Exception as e:
+    st.info("Feature importance is not available for this model.")
